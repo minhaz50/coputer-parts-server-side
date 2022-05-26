@@ -24,6 +24,7 @@ async function run() {
     await client.connect();
     const database = client.db("computer_parts");
     const productCollection = database.collection("products");
+    const usersCollection = database.collection("users");
     console.log("Database connected");
 
     // GET products API
@@ -31,6 +32,46 @@ async function run() {
       const cursor = productCollection.find({});
       const products = await cursor.toArray();
       res.send(products);
+    });
+    //user
+    app.get("/users/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+
+      const user = await usersCollection.findOne(query);
+      let isAdmin = false;
+      if (user?.role === "admin") {
+        isAdmin = true;
+      }
+      res.json({ admin: isAdmin });
+    });
+
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const result = await usersCollection.insertOne(user);
+      console.log(result);
+      res.json(result);
+    });
+
+    app.put("/users", async (req, res) => {
+      const user = req.body;
+
+      const filter = { email: user.email };
+      const options = { upsert: true };
+      const updateDoc = { $set: user };
+      const result = await usersCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      res.json(result);
+    });
+
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const result = await usersCollection.insertOne(user);
+      console.log(result);
+      res.json(result);
     });
   } finally {
   }
