@@ -1,9 +1,9 @@
 const express = require("express");
-const app = express();
-const { MongoClient, ServerApiVersion } = require("mongodb");
 const cors = require("cors");
 require("dotenv").config();
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
+const app = express();
 const port = process.env.PORT || 5000;
 
 // middleware
@@ -24,54 +24,78 @@ async function run() {
     await client.connect();
     const database = client.db("computer_parts");
     const productCollection = database.collection("products");
-    const usersCollection = database.collection("users");
+    const orderCollection = database.collection("orders");
+    // const reviewsCollection = database.collection("reviews");
+    const reviewsCollection = client.db("computer_parts").collection("reviews");
+    const userCollection = client.db("computer_parts").collection("users");
+
     console.log("Database connected");
 
     // GET products API
     app.get("/products", async (req, res) => {
-      const cursor = productCollection.find({});
+      const query = {};
+      const cursor = productCollection.find(query);
       const products = await cursor.toArray();
       res.send(products);
     });
-    //user
-    app.get("/users/:email", async (req, res) => {
+
+    app.get("/products/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log("load user with id: ", id);
+      //   const query = { _id: ObjectId(id) };
+      const product = await productCollection.findOne();
+      res.send(product);
+    });
+
+    //post
+    app.post("/products", async (req, res) => {
+      const newProduct = req.body;
+      const result = await productCollection.insertOne(newProduct);
+      res.send(result);
+    });
+
+    // GET orders API with matched email
+    app.get("/orders/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
-
-      const user = await usersCollection.findOne(query);
-      let isAdmin = false;
-      if (user?.role === "admin") {
-        isAdmin = true;
-      }
-      res.json({ admin: isAdmin });
+      const cursor = orderCollection.find(query);
+      const orders = await cursor.toArray();
+      res.send(orders);
+    });
+    // GET all orders API
+    app.get("/orders", async (req, res) => {
+      const cursor = orderCollection.find({});
+      const orders = await cursor.toArray();
+      res.send(orders);
     });
 
-    app.post("/users", async (req, res) => {
-      const user = req.body;
-      const result = await usersCollection.insertOne(user);
-      console.log(result);
-      res.json(result);
-    });
+    // POST order API
+    app.post("/orders", async (req, res) => {
+      const order = req.body;
+      console.log("hitting the post", order);
+      const result = await orderCollection.insertOne(order);
+      res.send(result);
 
-    app.put("/users", async (req, res) => {
-      const user = req.body;
-
-      const filter = { email: user.email };
-      const options = { upsert: true };
-      const updateDoc = { $set: user };
-      const result = await usersCollection.updateOne(
-        filter,
-        updateDoc,
-        options
-      );
-      res.json(result);
-    });
-
-    app.post("/users", async (req, res) => {
-      const user = req.body;
-      const result = await usersCollection.insertOne(user);
-      console.log(result);
-      res.json(result);
+      //make admin api
+      app.get("/users", async (req, res) => {
+        const query = {};
+        const cursor = userCollection.find(query);
+        const products = await cursor.toArray();
+        res.send(products);
+      });
+      //get review
+      app.get("/reviews", async (req, res) => {
+        const cursor = reviewsCollection.find({});
+        const reviews = await cursor.toArray();
+        res.send(reviews);
+      });
+      // post  Review
+      app.post("/reviews", async (req, res) => {
+        const review = req.body;
+        console.log("hitting the post", review);
+        const result = await reviewsCollection.insertOne(review);
+        res.send(result);
+      });
     });
   } finally {
   }
