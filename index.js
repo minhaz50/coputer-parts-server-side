@@ -37,7 +37,7 @@ async function run() {
       const products = await cursor.toArray();
       res.send(products);
     });
-
+    //get products id
     app.get("/products/:id", async (req, res) => {
       const id = req.params.id;
       console.log("load user with id: ", id);
